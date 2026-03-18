@@ -234,7 +234,7 @@ const MessageHandler = {
     room.skipVotes.add(pid);
 
     const total  = room.players.size;
-    const needed = Math.max(1, Math.ceil(total * Config.DEFAULTS.SKIP_VOTE_FRACTION));
+    const needed = total; // all players must agree to skip
     const count  = room.skipVotes.size;
 
     log.debug('Game', `${code} — skip vote: ${count}/${needed}`);
@@ -263,13 +263,26 @@ const MessageHandler = {
     }
 
     try {
-      const buffer = Buffer.from(data, 'base64');
+      const buffer  = Buffer.from(data, 'base64');
+      const nameLow = name.toLowerCase();
       let text;
 
-      if (name.toLowerCase().endsWith('.pdf')) {
+      if (nameLow.endsWith('.pdf')) {
         const pdfParse = require('pdf-parse');
         const result   = await pdfParse(buffer);
         text = result.text;
+      } else if (nameLow.endsWith('.docx') || nameLow.endsWith('.pptx')) {
+        const os           = require('os');
+        const path         = require('path');
+        const fs           = require('fs');
+        const officeParser = require('officeparser');
+        const tmp          = path.join(os.tmpdir(), `qf_${Date.now()}_${nameLow}`);
+        fs.writeFileSync(tmp, buffer);
+        try {
+          text = await officeParser.parseOffice(tmp, {});
+        } finally {
+          try { fs.unlinkSync(tmp); } catch { /* ignore */ }
+        }
       } else {
         text = buffer.toString('utf-8');
       }
@@ -281,7 +294,7 @@ const MessageHandler = {
       if (player) RoomHelpers.sendTo(player, { type: 'file_text', name, text });
     } catch (err) {
       log.error('Upload', `${code} — failed to parse "${name}": ${err.message}`);
-      this._error(ws, `Could not extract text from "${name}". Try a .txt or .md file instead.`);
+      this._error(ws, `Could not extract text from "${name}". Try a .txt file instead.`);
     }
   },
 

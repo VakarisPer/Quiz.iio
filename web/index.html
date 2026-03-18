@@ -180,26 +180,26 @@
       <div class="card">
         <div class="card-title">AI Question Source</div>
         <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6;">
-          Optional — Upload a file or paste text. The AI will generate quiz questions from your content.
+          Optional — Upload a file and add specific instructions. The AI will generate quiz questions from your content.
         </p>
 
         <div class="field">
-          <label>Upload File (.txt .md .pdf .json)</label>
+          <label>Upload File (.pdf .docx .pptx .txt)</label>
           <div class="upload-zone" id="upload-zone"
                ondragover="event.preventDefault(); this.classList.add('drag-over')"
                ondragleave="this.classList.remove('drag-over')"
                ondrop="App.lobby.handleDrop(event)">
-            <input type="file" accept=".txt,.md,.pdf,.json" id="file-input" onchange="App.lobby.handleFileSelect(event)">
+            <input type="file" accept=".txt,.pdf,.docx,.pptx" id="file-input" onchange="App.lobby.handleFileSelect(event)">
             <div class="upload-icon">↑</div>
-            <p>Drop a file here or click to browse (.txt .md .pdf .json)</p>
+            <p>Drop a file here or click to browse (.pdf .docx .pptx .txt)</p>
             <div class="upload-file-name hidden" id="file-label"></div>
           </div>
         </div>
 
         <div class="field">
-          <label>Or Paste Text / Topic Below</label>
+          <label>Specific instructions</label>
           <textarea id="ctx-text"
-            placeholder="Paste study notes, an article, or describe the topic in a few sentences…"></textarea>
+            placeholder="e.g. Focus on key terms only, make questions challenging, avoid true/false…"></textarea>
         </div>
 
         <button class="btn btn-secondary btn-full" onclick="App.lobby.saveContext()">Save AI Source</button>

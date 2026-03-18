@@ -100,9 +100,9 @@ class GameController {
 
     App.renderer.renderLeaderboard(m.leaderboard, 'rv-lb', App.state.myPid);
 
-    // Reset skip-vote button
+    // Reset skip-vote button (all players must vote to skip)
     const skipBtn = Utils.q('#rv-skip-btn');
-    const needed  = Math.max(1, Math.ceil(m.leaderboard.length / 2));
+    const needed  = m.leaderboard.length;
     skipBtn.textContent = 'Skip (0/' + needed + ')';
     skipBtn.disabled    = false;
 

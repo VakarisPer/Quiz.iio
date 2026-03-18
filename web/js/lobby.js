@@ -6,7 +6,8 @@
  */
 class LobbyController {
   constructor() {
-    this._roomCode = null;
+    this._roomCode    = null;
+    this._fileContext = '';  // extracted text from uploaded file
   }
 
   /** The current room code (null before a room is created/joined). */
@@ -69,11 +70,15 @@ class LobbyController {
 
   // ── AI source ─────────────────────────────────────────────
 
-  /** Send the pasted/loaded context text to the server. */
+  /** Send the file content + specific instructions to the server. */
   saveContext() {
-    const text = Utils.q('#ctx-text').value.trim();
-    if (!text) { App.toast.show('Please enter some text first', 'err'); return; }
-    App.conn.send({ type: 'set_context', context: text });
+    const instructions = Utils.q('#ctx-text').value.trim();
+    if (!this._fileContext && !instructions) {
+      App.toast.show('Upload a file or add instructions first', 'err');
+      return;
+    }
+    const context = [this._fileContext, instructions].filter(Boolean).join('\n\n---\nInstructions: ');
+    App.conn.send({ type: 'set_context', context });
     Utils.q('#ctx-saved-notice').classList.remove('hidden');
     App.toast.show('AI source saved!', 'ok');
   }
@@ -127,12 +132,12 @@ class LobbyController {
   // ── Private ───────────────────────────────────────────────
 
   _loadFile(file) {
-    const name    = file.name.toLowerCase();
-    const isText  = ['.txt', '.md', '.json'].some(ext => name.endsWith(ext));
-    const isPdf   = name.endsWith('.pdf');
+    const name   = file.name.toLowerCase();
+    const isTxt  = name.endsWith('.txt');
+    const isServer = ['.pdf', '.docx', '.pptx'].some(ext => name.endsWith(ext));
 
-    if (!isText && !isPdf) {
-      App.toast.show('Supported formats: .txt .md .pdf .json', 'err');
+    if (!isTxt && !isServer) {
+      App.toast.show('Supported: PDF, Word (.docx), PPTX, TXT', 'err');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
@@ -140,11 +145,11 @@ class LobbyController {
       return;
     }
 
-    if (isText) {
+    if (isTxt) {
       const reader = new FileReader();
       reader.onload = (ev) => {
         const text = ev.target.result;
-        Utils.q('#ctx-text').value = text;
+        this._fileContext = text;
         const lbl = Utils.q('#file-label');
         lbl.textContent = `Loaded: ${file.name} (${Math.round(text.length / 1024 * 10) / 10} KB)`;
         lbl.classList.remove('hidden');
@@ -152,7 +157,7 @@ class LobbyController {
       };
       reader.readAsText(file);
     } else {
-      // PDF — send raw bytes to server for extraction
+      // PDF / DOCX / PPTX — send to server for extraction
       const lbl = Utils.q('#file-label');
       lbl.textContent = 'Extracting ' + file.name + '…';
       lbl.classList.remove('hidden');
@@ -168,9 +173,9 @@ class LobbyController {
     }
   }
 
-  /** Populate the context textarea with server-extracted file text. */
+  /** Store server-extracted file text (shown in upload zone, not in instructions textarea). */
   handleFileText(m) {
-    Utils.q('#ctx-text').value = m.text;
+    this._fileContext = m.text;
     const lbl = Utils.q('#file-label');
     lbl.textContent = `Extracted: ${m.name} (${Math.round(m.text.length / 1024 * 10) / 10} KB)`;
     lbl.classList.remove('hidden');
