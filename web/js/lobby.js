@@ -99,35 +99,48 @@ class LobbyController {
   // ── Game settings ─────────────────────────────────────────
 
   /** Toggle visibility of custom language input field. */
-  toggleCustomLanguage() {
-    const select = Utils.q('#s-language');
-    const customInput = Utils.q('#s-language-custom');
-    if (select.value === 'other') {
-      customInput.classList.remove('hidden');
-      customInput.focus();
-    } else {
-      customInput.classList.add('hidden');
-      this.updateSettings();
-    }
-  }
+  // toggleCustomLanguage() 
+  // {
+  //   const select = Utils.q('#s-language');
+  //   const customInput = Utils.q('#s-language-custom');
+
+  //   if (select.value === 'Other') {
+  //     customInput.classList.remove('hidden');
+  //     customInput.focus();
+  //   } else {
+  //     customInput.classList.add('hidden');
+  //     this.updateSettings();
+  //   }
+  // }
 
   /** Send updated room settings (max players, difficulty, language) to the server. */
-  updateSettings() {
+  updateSettings() 
+  {
     const maxPlayers = parseInt(Utils.q('#s-maxplayers')?.value || '0');
     const difficulty = Utils.q('#s-difficulty')?.value || 'normal';
+
     const select = Utils.q('#s-language');
     let language = select.value || 'english';
-    
-    // If "Other" is selected, use custom language input
-    if (language === 'other') {
-      const customInput = Utils.q('#s-language-custom').value.trim();
-      if (!customInput) {
+
+    const input = Utils.q('#s-language-custom');
+
+    // hide by default
+    input.style.display = 'none';
+
+    if (language === 'other') 
+    {
+      input.style.display = '';
+
+      const value = input.value.trim();
+      if (!value) 
+      {
         App.toast.show('Please enter a language', 'err');
         return;
       }
-      language = customInput;
+
+      language = value;
     }
-    
+
     this._language = language;
     App.conn.send({ type: 'update_settings', maxPlayers, difficulty, language });
   }
@@ -174,8 +187,8 @@ class LobbyController {
       App.toast.show('Supported: PDF, Word (.docx), PPTX, TXT', 'err');
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      App.toast.show('File too large (max 5 MB)', 'err');
+    if (file.size > 50 * 1024 * 1024) {
+      App.toast.show('File too large (max 50 MB)', 'err');
       return;
     }
 

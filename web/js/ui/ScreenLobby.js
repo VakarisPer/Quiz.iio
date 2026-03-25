@@ -83,7 +83,7 @@ class ScreenLobby {
 
             <div class="field">
               <label>Language</label>
-              <select id="s-language" onchange="App.lobby.toggleCustomLanguage()">
+              <select id="s-language" onchange="App.lobby.updateSettings()">
                 <option value="english">English</option>
                 <option value="lithuanian">Lietuvių</option>
                 <option value="spanish">Español</option>
@@ -93,7 +93,7 @@ class ScreenLobby {
                 <option value="other">Other</option>
               </select>
               <input type="text" id="s-language-custom" placeholder="Type your language..." 
-                class="hidden" onchange="App.lobby.updateSettings()" style="margin-top:8px;">
+                class="hidden" onchange="App.lobby.updateSettings()" style="margin-top:8px; display: none;">
             </div>
           </div>
 
