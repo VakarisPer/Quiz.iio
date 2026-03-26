@@ -181,7 +181,7 @@ class LobbyController {
   _loadFile(file) {
     const name   = file.name.toLowerCase();
     const isTxt  = name.endsWith('.txt');
-    const isServer = ['.pdf', '.docx', '.pptx'].some(ext => name.endsWith(ext));
+    const isServer = ['.pdf','.docx', '.pptx'].some(ext => name.endsWith(ext));
 
     if (!isTxt && !isServer) {
       App.toast.show('Supported: PDF, Word (.docx), PPTX, TXT', 'err');
@@ -226,8 +226,10 @@ class LobbyController {
         console.error('[DEBUG] FileReader error for:', file.name);
       };
       reader.readAsText(file);
-    } else {
-      // PDF / DOCX / PPTX — send to server for extraction
+    } 
+    else 
+    {
+      // pdf / DOCX / PPTX — send to server for extraction
       const lbl = Utils.q('#file-label');
       lbl.textContent = 'Extracting ' + file.name + '…';
       lbl.classList.remove('hidden');

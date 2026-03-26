@@ -59,10 +59,12 @@ class MessageHandler {
 
       // ── Game flow ─────────────────────────────────────────
       case 'game_starting':
+        Sound.play();
         App.countdown.show(m.countdown || 3);
         break;
 
       case 'question':
+        Sound.play();
         App.countdown.hide();
         App.game.showQuestion(m);
         break;
@@ -93,6 +95,7 @@ class MessageHandler {
         break;
 
       case 'game_over':
+        Sound.play();
         App.game.showResults(m);
         break;
 

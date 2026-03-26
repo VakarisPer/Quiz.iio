@@ -11,7 +11,10 @@ const Utils = {
   /** @param {string} sel @returns {NodeList} */
   qs(sel) { return document.querySelectorAll(sel); },
 
-  /** HTML-escape a value so it's safe to inject into innerHTML. */
+  /**
+   * HTML-escape a value so it's safe to inject into innerHTML,
+   * while preserving LaTeX delimiters that MathJax needs.
+   */
   h(str) {
     return String(str)
       .replace(/&/g, '&amp;')

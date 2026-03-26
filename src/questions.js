@@ -8,10 +8,18 @@ const log    = require('./logger');
 const AI_URL = 'https://api.deepseek.com/v1/chat/completions';
 
 const SYSTEM_PROMPT =
-  'You are a quiz question generator. ' +
+  'You are a quiz question generator for students who are learning. ' +
   'Return ONLY a raw JSON array with no markdown fences or extra text. ' +
   'Each element: {"q":"question","options":["A","B","C","D"],"correct":0,"topic":"topic","explanation":"explanation"}. ' +
-  '"correct" is the 0-based index of the correct option. Generate varied, clear questions.';
+  '"correct" is the 0-based index of the correct option. Generate varied, clear questions. ' +
+  'MATH FORMATTING RULES: ' +
+  '1. Wrap ALL inline math expressions with \\( and \\), e.g. \\(x^2 + 1\\). ' +
+  '2. Wrap display/block equations with \\[ and \\], e.g. \\[\\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}\\]. ' +
+  '3. Use LaTeX for ALL formulas in questions, options, AND explanations. Never use plain-text math like "x^2" — always use \\(x^2\\). ' +
+  'EXPLANATION RULES: ' +
+  '1. Every explanation MUST be understandable by a student learning the subject. ' +
+  '2. For math questions: first state what the key symbols/terms mean, then show the solution steps, then state why the correct answer is right. ' +
+  '3. Keep explanations concise but educational — a learner should understand the concept after reading it.';
 
 /**
  * QuestionService — generates quiz questions from the DeepSeek AI API.
@@ -84,7 +92,10 @@ const QuestionService = {
 
     const userPrompt =
       `Generate ${count} multiple-choice quiz questions with 4 answer options ` +
-      `based on this material:\n\n${contextChars}\n\n${difficultyClause}\n\nReturn ONLY a JSON array.`;
+      `based on this material:\n\n${contextChars}\n\n${difficultyClause}\n\n` +
+      'IMPORTANT: Use LaTeX notation (with \\( \\) for inline and \\[ \\] for display math) for ALL mathematical expressions in questions, options, and explanations. ' +
+      'Each explanation must teach the concept — explain symbols, show steps, and state why the answer is correct. ' +
+      'Return ONLY a JSON array.';
 
     try {
       const res = await fetch(AI_URL, {
@@ -110,6 +121,19 @@ const QuestionService = {
       const data  = await res.json();
       let raw     = data.choices?.[0]?.message?.content || '';
       raw         = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+
+      // Fix LaTeX backslashes that break JSON.parse():
+      // After the outer API JSON is decoded, `raw` has literal backslashes
+      // from LaTeX (\frac, \sqrt, \theta, etc.) that are invalid JSON escapes.
+      // Strategy: protect the two structural JSON sequences (\\ and \"),
+      //           then double every remaining backslash, then restore.
+      raw = raw
+        .replace(/\\\\/g, '\x00B\x00')    // protect existing \\
+        .replace(/\\"/g,  '\x00Q\x00')    // protect existing \"
+        .replace(/\\/g,   '\\\\')          // escape every remaining lone \
+        .replace(/\x00B\x00/g, '\\\\')    // restore \\
+        .replace(/\x00Q\x00/g, '\\"');     // restore \"
+
       const questions = JSON.parse(raw);
 
       if (!Array.isArray(questions) || questions.length === 0) {
@@ -117,9 +141,32 @@ const QuestionService = {
         throw new Error('AI returned an invalid response. Try again.');
       }
 
-      log.info('AI', `Successfully generated ${questions.length} questions`);
-      return questions.slice(0, count);
-    } catch (err) {
+      // Validate and sanitize each question
+      const validated = questions.filter((q, i) => {
+        if (!q.q || !Array.isArray(q.options) || q.options.length < 2) {
+          log.warn('AI', `Question ${i} missing required fields, skipping`);
+          return false;
+        }
+        if (typeof q.correct !== 'number' || q.correct < 0 || q.correct >= q.options.length) {
+          log.warn('AI', `Question ${i} has invalid correct index, skipping`);
+          return false;
+        }
+        // Ensure explanation exists
+        if (!q.explanation) {
+          q.explanation = 'No explanation provided.';
+        }
+        return true;
+      });
+
+      if (validated.length === 0) {
+        throw new Error('All AI-generated questions failed validation.');
+      }
+
+      log.info('AI', `Successfully generated ${validated.length} questions (${questions.length - validated.length} rejected)`);
+      return validated.slice(0, count);
+    } 
+    catch (err) 
+    {
       log.error('AI', 'Request exception:', err.message);
       throw err instanceof SyntaxError
         ? new Error('AI response could not be parsed. Try again.')

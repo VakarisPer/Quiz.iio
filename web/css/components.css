@@ -169,10 +169,9 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.5; }
 .btn-group .btn { flex: 1; }
 
 /* ── Theme toggle ── */
-#theme-toggle {
+#theme-toggle, #sound-toggle {
   position: fixed;
   top: 16px;
-  right: 16px;
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -189,7 +188,9 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.5; }
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   outline: none;
 }
-#theme-toggle:hover { background: var(--bg-alt); transform: scale(1.08); }
+#theme-toggle { right: 16px; }
+#sound-toggle { right: 64px; }
+#theme-toggle:hover, #sound-toggle:hover { background: var(--bg-alt); transform: scale(1.08); }
 
 /* ── Toast ── */
 #toast {

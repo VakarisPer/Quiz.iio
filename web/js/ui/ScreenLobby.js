@@ -37,7 +37,7 @@ class ScreenLobby {
 
             <div class="field">
               <div class="range-row">
-                <label style="margin:0;">Questions per game</label>
+                <label for="r-questions" style="margin:0;">Questions per game</label>
                 <div>
                   <span class="range-val" id="v-questions">10</span>
                   <span class="range-unit"> questions</span>
@@ -50,7 +50,7 @@ class ScreenLobby {
 
             <div class="field">
               <div class="range-row">
-                <label style="margin:0;">Seconds per question</label>
+                <label for="r-timer" style="margin:0;">Seconds per question</label>
                 <div>
                   <span class="range-val" id="v-timer">35</span>
                   <span class="range-unit"> sec</span>
@@ -62,7 +62,7 @@ class ScreenLobby {
             </div>
 
             <div class="field">
-              <label>Max Players</label>
+              <label for="s-maxplayers">Max Players</label>
               <select id="s-maxplayers" onchange="App.lobby.updateSettings()">
                 <option value="0">Unlimited</option>
                 <option value="4">4 players</option>
@@ -73,7 +73,7 @@ class ScreenLobby {
             </div>
 
             <div class="field">
-              <label>Difficulty</label>
+              <label for="s-difficulty">Difficulty</label>
               <select id="s-difficulty" onchange="App.lobby.updateSettings()">
                 <option value="normal">Normal</option>
                 <option value="easy">Easy</option>
@@ -82,7 +82,7 @@ class ScreenLobby {
             </div>
 
             <div class="field">
-              <label>Language</label>
+              <label for="s-language">Language</label>
               <select id="s-language" onchange="App.lobby.updateSettings()">
                 <option value="english">English</option>
                 <option value="lithuanian">Lietuvių</option>
@@ -104,7 +104,7 @@ class ScreenLobby {
             </p>
 
             <div class="field">
-              <label>Upload File (.pdf .docx .pptx .txt)</label>
+              <label for="file-input">Upload File (.pdf .docx .pptx .txt)</label>
               <div class="upload-zone" id="upload-zone"
                 ondragover="event.preventDefault(); this.classList.add('drag-over')"
                 ondragleave="this.classList.remove('drag-over')" ondrop="App.lobby.handleDrop(event)">
@@ -120,7 +120,7 @@ class ScreenLobby {
             </div>
 
             <div class="field">
-              <label>Specific instructions</label>
+              <label for="ctx-text">Specific instructions</label>
               <textarea id="ctx-text"
                 placeholder="e.g. Focus on key terms only, make questions challenging, avoid true/false…"></textarea>
             </div>

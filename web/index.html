@@ -4,6 +4,8 @@
 <head>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18029983298"></script>
+
+
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag() { dataLayer.push(arguments); }
@@ -12,7 +14,7 @@
   </script>
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://pagead2.googlesyndication.com; style-src 'self' 'unsafe-inline'; connect-src 'self' wss: ws:; img-src 'self' data: https:; frame-src https://googleads.g.doubleclick.net;">
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://pagead2.googlesyndication.com https://cdn.jsdelivr.net https://googleads.g.doubleclick.net; style-src 'self' 'unsafe-inline'; connect-src 'self' wss: ws: https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://pagead2.googlesyndication.com https://www.google.com https://stats.g.doubleclick.net; img-src 'self' data: https:; font-src 'self' https://cdn.jsdelivr.net; media-src 'self'; frame-src https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com;">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
   <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()">
@@ -25,6 +27,19 @@
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
   <link rel="stylesheet" href="style.css?v=1.2.0">
+  <!-- MathJax for rendering LaTeX formulas -->
+  <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']]
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea']
+      }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5650233313843112"
     crossorigin="anonymous"></script>
   <!-- Apply saved theme before first paint to avoid flash -->
@@ -64,6 +79,11 @@
     <span id="theme-icon"></span>
   </button>
 
+  <!-- Sound toggle -->
+  <button type="button" id="sound-toggle" onclick="toggleSound()" title="Toggle sound on / off">
+    <span id="sound-icon"></span>
+  </button>
+
   <!-- Toast -->
   <div id="toast"></div>
 
@@ -98,6 +118,7 @@
   <script src="js/templates.js"></script><!-- injects all screens into #app -->
 
   <!-- ── App modules (load order matters) ─────────────────── -->
+   <script src="js/sound.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/state.js"></script>
   <script src="js/toast.js"></script>
@@ -124,7 +145,25 @@
     document.getElementById('theme-icon').textContent =
       document.documentElement.getAttribute('data-theme') === 'dark' ? '\u2600' : '\u263D';
   </script>
+  <!-- ── Sound toggle helper ───────────────────────────────── -->
+  <script>
+    function toggleSound() {
+      var isMuted = localStorage.getItem('soundMuted') === 'true';
+      var next = !isMuted;
+      localStorage.setItem('soundMuted', next);
+      document.getElementById('sound-icon').textContent = next ? '\u{1F507}' : '\u{1F509}';
+      if (next) {
+        Sound.stop();
+      } else {
+        Sound.play();
+      }
+    }
+    function initSoundIcon() {
+      var isMuted = localStorage.getItem('soundMuted') === 'true';
+      document.getElementById('sound-icon').textContent = isMuted ? '\u{1F507}' : '\u{1F509}';
+    }
+    initSoundIcon();
+  </script>
 
 </body>
-
 </html>

@@ -11,6 +11,9 @@ const Config = {
 
   DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY || '',
 
+  MATHPIX_APP_ID:  process.env.MATHPIX_APP_ID  || '',
+  MATHPIX_APP_KEY: process.env.MATHPIX_APP_KEY || '',
+
   LOG_LEVEL: (process.env.LOG_LEVEL || 'INFO').toUpperCase(),
 
   /** Default game settings (host may override per room). */
@@ -41,6 +44,9 @@ const Config = {
 
 if (!Config.DEEPSEEK_API_KEY) {
   console.warn('[Config] WARNING: DEEPSEEK_API_KEY is not set. AI question generation will fail.');
+}
+if (!Config.MATHPIX_APP_ID || !Config.MATHPIX_APP_KEY) {
+  console.warn('[Config] WARNING: MATHPIX_APP_ID / MATHPIX_APP_KEY not set. PDF math extraction will use local fallback.');
 }
 
 module.exports = Config;

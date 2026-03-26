@@ -7,6 +7,7 @@ const PlayerFactory = require('./player');
 const RoomStore     = require('./roomStore');
 const RoomHelpers   = require('./roomHelpers');
 const GameLoop      = require('./gameLoop');
+const mathParser      = require('./mathParser');
 
 const sanitize = s => String(s).replace(/[<>"'&]/g, '').trim().slice(0, 20);
 
@@ -303,10 +304,15 @@ const MessageHandler = {
       const nameLow = name.toLowerCase();
       let text;
 
-      if (nameLow.endsWith('.pdf')) {
-        const pdfParse = require('pdf-parse');
-        const result   = await pdfParse(buffer);
+      if (nameLow.endsWith('.pdf')) 
+      {
+        const result = await mathParser.extractFromPDF(buffer, name);
         text = result.text;
+        if (result.warning) {
+          log.warn('Upload', `${code} — ${result.warning}`);
+          const player = room.players.get(pid);
+          if (player) RoomHelpers.sendTo(player, { type: 'status', msg: result.warning });
+        }
       } else if (nameLow.endsWith('.docx') || nameLow.endsWith('.pptx')) {
         const os           = require('os');
         const path         = require('path');

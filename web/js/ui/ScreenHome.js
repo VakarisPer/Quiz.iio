@@ -8,7 +8,7 @@ class ScreenHome {
           <div class="logo">QUIZ<em>ZA</em></div>
           <div class="tagline">Real-time multiplayer quiz game</div>
         </div>
-
+        
         <!-- Banner ad (home screen only) -->
         <div class="ad-banner-strip"></div>
 
@@ -114,6 +114,13 @@ class ScreenHome {
           <span id="active-players-text" style="margin-left:14px;color:var(--muted);font-size:13px;"></span>
         </div>
         <hr class="divider" style="margin:24px 0 0;">
+        <div style="text-align:center;padding:16px 0 8px;font-size:13px;color:var(--muted);">
+          <a href="privacy.html" style="color:var(--muted);text-decoration:underline;">Privacy Policy</a>
+          &nbsp;·&nbsp;
+          <a href="terms.html" style="color:var(--muted);text-decoration:underline;">Terms of Service</a>
+          &nbsp;·&nbsp;
+          <a href="mailto:contact@quizza.gg" style="color:var(--muted);text-decoration:underline;">Contact</a>
+        </div>
       </div>`;
   }
 }

@@ -14,7 +14,7 @@ class GameRenderer {
   renderOptions(opts) {
     Utils.q('#g-options').innerHTML = opts.map((o, i) => `
       <button class="option-btn" id="opt-${i}" onclick="App.game.pickAnswer(${i})">
-        <span class="opt-letter">${GameRenderer.LETTERS[i]}</span>${Utils.h(o)}
+        <span class="opt-letter">${GameRenderer.LETTERS[i]}</span><span class="opt-text">${Utils.h(o)}</span>
       </button>
     `).join('');
   }

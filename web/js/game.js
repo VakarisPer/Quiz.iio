@@ -46,12 +46,17 @@ class GameController {
     Utils.q('#g-qnum').textContent     = this.curQNum;
     Utils.q('#g-qtotal').textContent   = this.totalQs;
     Utils.q('#g-topic').textContent    = m.topic || 'General';
-    Utils.q('#g-question').textContent = m.question;
+    Utils.q('#g-question').innerHTML   = Utils.h(m.question);
     Utils.q('#g-answered').textContent = '';
 
     App.renderer.renderOptions(m.options);
     App.timer.start(m.duration);
     App.screens.show('screen-game');
+
+    // Re-typeset MathJax for question + options
+    if (window.MathJax?.typesetPromise) {
+      MathJax.typesetPromise([Utils.q('#g-question'), Utils.q('#g-options')]).catch(() => {});
+    }
   }
 
   // ── Answer selection ──────────────────────────────────────
@@ -181,8 +186,11 @@ class GameController {
   _renderExplanation(text) {
     const expl = Utils.q('#rv-explanation');
     if (text) {
-      expl.textContent = text;
+      expl.innerHTML = Utils.h(text);
       expl.classList.remove('hidden');
+      if (window.MathJax?.typesetPromise) {
+        MathJax.typesetPromise([expl]).catch(() => {});
+      }
     } else {
       expl.classList.add('hidden');
     }

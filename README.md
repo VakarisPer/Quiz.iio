@@ -99,6 +99,8 @@ Open `http://localhost:3000` in your browser.
 |---|---|---|
 | `PORT` | `3000` | TCP port the server listens on |
 | `DEEPSEEK_API_KEY` | *(empty)* | DeepSeek API key. Leave blank to use the built-in question bank |
+| `MATHPIX_APP_ID` | *(empty)* | Mathpix OCR app ID for formula-aware PDF extraction |
+| `MATHPIX_APP_KEY` | *(empty)* | Mathpix OCR app key. Without it, PDFs fall back to plain text extraction |
 | `LOG_LEVEL` | `INFO` | Verbosity: `DEBUG`, `INFO`, `WARN`, or `ERROR` |
 
 ---
