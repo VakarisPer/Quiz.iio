@@ -124,10 +124,17 @@ class ScreenRegLog {
       return;
     }
 
-    // TODO: Replace with Supabase auth
-    // const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    errEl.textContent = 'Auth not connected yet — use "Play as Guest".';
-    errEl.classList.remove('hidden');
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      errEl.textContent = error.message;
+      errEl.classList.remove('hidden');
+      return;
+    }
+
+    App.state.user = data.user;
+    App.toast.show('Welcome back, ' + data.user.user_metadata.username + '!', 'ok');
+    App.screens.show('screen-home');
   }
 
   /* ── Register (stub — wire to Supabase later) ── */
@@ -155,9 +162,19 @@ class ScreenRegLog {
       return;
     }
 
-    // TODO: Replace with Supabase auth
-    // const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { username } } });
-    errEl.textContent = 'Auth not connected yet — use "Play as Guest".';
+    const { data, error } = await supabaseClient.auth.signUp({
+    email,
+    password,
+    options: { data: { username } }
+  });
+
+  if (error) {
+    errEl.textContent = error.message;
     errEl.classList.remove('hidden');
+    return;
+  }
+
+  App.toast.show('Account created! Check your email to confirm.', 'ok');
+  ScreenRegLog.setTab('login');
   }
 }

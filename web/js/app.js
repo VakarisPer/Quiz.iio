@@ -43,6 +43,7 @@ const App = (() => {
 
   /** Boot: attach keyboard listeners and open the WebSocket. */
   function init() {
+    
     // Start music on first user interaction (browser requires a gesture)
     const _startMusic = () => {
       Sound.play();
