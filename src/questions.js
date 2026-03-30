@@ -93,7 +93,7 @@ const QuestionService = {
     const userPrompt =
       `Generate ${count} multiple-choice quiz questions with 4 answer options ` +
       `based on this material:\n\n${contextChars}\n\n${difficultyClause}\n\n` +
-      'IMPORTANT: Use LaTeX notation (with \\( \\) for inline and \\[ \\] for display math) for ALL mathematical expressions in questions, options, and explanations. ' +
+      'IMPORTANT: Use LaTeX notation (with \\( \\) for inline and \\[ \\] for display math) for ALL mathematical expressions in questions, options, and explanations.(if its not mathematical, do not use LaTeX, and generate question based on the context) ' +
       'Each explanation must teach the concept — explain symbols, show steps, and state why the answer is correct. ' +
       'Return ONLY a JSON array.';
 
