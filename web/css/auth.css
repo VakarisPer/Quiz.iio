@@ -34,7 +34,7 @@
 .auth-error {
   background: rgba(239, 68, 68, 0.08);
   border: 1px solid rgba(239, 68, 68, 0.25);
-  color: var(--error);
+  color: white;
   font-size: 13px;
   font-weight: 600;
   padding: 10px 14px;
