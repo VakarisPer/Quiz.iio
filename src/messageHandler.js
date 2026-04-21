@@ -7,6 +7,7 @@ const PlayerFactory = require('./player');
 const RoomStore     = require('./roomStore');
 const RoomHelpers   = require('./roomHelpers');
 const GameLoop      = require('./gameLoop');
+const QuestionService = require('./questions');
 
 const sanitize = s => String(s).replace(/[<>"'&]/g, '').trim().slice(0, 20);
 
@@ -87,7 +88,7 @@ const MessageHandler = {
     RoomStore.pidToRoom.set(pid, code);
     log.info('Room', `${code} created by ${name} (${pid})`);
 
-    RoomHelpers.sendTo(player, { type: 'created', code, pid, name });
+    RoomHelpers.sendTo(player, { type: 'created', code, pid, name, rejoinKey: player.rejoinKey });
     RoomHelpers.sendTo(player, RoomHelpers.roomSnapshot(room));
     require('./wsServer').broadcastRoomsUpdate();
   },
@@ -118,18 +119,22 @@ const MessageHandler = {
     RoomStore.pidToRoom.set(pid, code);
     log.info('Room', `${code} — ${name} (${pid}) joined (${room.players.size} total)`);
 
-    RoomHelpers.sendTo(player, { type: 'joined', code, pid, name });
-    RoomHelpers.broadcast(room, { type: 'player_joined', pid, name }, pid);
+    RoomHelpers.sendTo(player, { type: 'joined', code, pid, name, rejoinKey: player.rejoinKey });
+    RoomHelpers.broadcast(room, { type: 'player_joined', pid, name: player.name }, pid);
     RoomHelpers.broadcast(room, RoomHelpers.roomSnapshot(room));
     require('./wsServer').broadcastRoomsUpdate();
   },
 
   _rejoinRoom(ws, pid, msg) {
-    const code = String(msg.code || '').toUpperCase().trim();
-    const name = this._sanitizeName(msg.name);
+    const code      = String(msg.code || '').toUpperCase().trim();
+    const rejoinKey = String(msg.rejoinKey || '').trim();
 
     if (!/^[A-Z0-9]{5}$/.test(code)) {
       this._error(ws, 'Invalid room code.');
+      return;
+    }
+    if (!rejoinKey) {
+      this._error(ws, 'Reconnect session expired. Join the room again.');
       return;
     }
 
@@ -139,15 +144,22 @@ const MessageHandler = {
       return;
     }
 
-    const player = RoomHelpers.rejoinPlayer(ws, pid, name, code);
+    const player = RoomHelpers.rejoinPlayer(ws, pid, rejoinKey, code);
     if (!player) {
-      this._error(ws, 'No disconnected slot found for your name in that room. Try joining normally.');
+      this._error(ws, 'No reconnect slot was found for this session. Join the room again.');
       return;
     }
 
     const isHost = room.hostPid === pid;
 
-    RoomHelpers.sendTo(player, { type: 'rejoined', code, pid, name, isHost });
+    RoomHelpers.sendTo(player, {
+      type: 'rejoined',
+      code,
+      pid,
+      name: player.name,
+      isHost,
+      rejoinKey: player.rejoinKey,
+    });
     RoomHelpers.sendTo(player, RoomHelpers.roomSnapshot(room));
 
     // If a question is active, re-send it
@@ -165,7 +177,7 @@ const MessageHandler = {
       });
     }
 
-    RoomHelpers.broadcast(room, { type: 'player_joined', pid, name }, pid);
+    RoomHelpers.broadcast(room, { type: 'player_joined', pid, name: player.name }, pid);
     RoomHelpers.broadcast(room, RoomHelpers.roomSnapshot(room));
     require('./wsServer').broadcastRoomsUpdate();
   },
@@ -174,17 +186,43 @@ const MessageHandler = {
     if (!this._requireRoom(ws, pid, room)) return;
     if (!this._requireHost(ws, pid, room, code)) return;
 
-    room.topicContext = String(msg.context || '').replace(/[<>"'&]/g, '').trim().slice(0, 2000);
-
-    // Derive a short display topic from the instructions
-    const instMatch = room.topicContext.match(/Instructions:\s*(.+)/);
-    const rawTopic  = instMatch ? instMatch[1] : room.topicContext.split('\n')[0];
-    room.topic = rawTopic.trim().slice(0, 25) || 'Custom';
+    const rawContext    = String(msg.context || '').replace(/[<>"'&]/g, '').trim();
+    const storedContext = rawContext.slice(0, Config.LIMITS.MAX_CONTEXT_CHARS);
+    room.topicContext   = storedContext;
+    room.topic          = 'Analyzing Topic';
+    const topicLanguage = String(msg.language || room.settings?.language || 'English').slice(0, 20) || 'English';
 
     log.info('Room', `${code} — AI context set by host (${room.topicContext.length} chars), topic="${room.topic}"`);
 
-    RoomHelpers.broadcast(room, { type: 'context_set', msg: 'AI source saved.' });
+    const notices = ['AI source saved.'];
+    if (rawContext.length > Config.LIMITS.MAX_CONTEXT_CHARS) {
+      notices.push(`Extra text was trimmed after ${Config.LIMITS.MAX_CONTEXT_CHARS} characters.`);
+    } else if (room.topicContext.length > Config.LIMITS.AI_CONTEXT_CHARS) {
+      notices.push(`The AI will use the first ${Config.LIMITS.AI_CONTEXT_CHARS} characters when generating questions.`);
+    }
+
+    RoomHelpers.broadcast(room, {
+      type: 'context_set',
+      msg: notices.join(' '),
+      truncated: rawContext.length > Config.LIMITS.MAX_CONTEXT_CHARS,
+      aiTrimmed: room.topicContext.length > Config.LIMITS.AI_CONTEXT_CHARS,
+      storedChars: room.topicContext.length,
+    });
     RoomHelpers.broadcast(room, RoomHelpers.roomSnapshot(room));
+    require('./wsServer').broadcastRoomsUpdate();
+
+    const requestedContext = room.topicContext;
+    QuestionService.generateRoomTopic(requestedContext, topicLanguage)
+      .then(topic => {
+        if (room.topicContext !== requestedContext) return;
+        room.topic = topic;
+        log.info('Room', `${code} — room topic generated: "${room.topic}"`);
+        RoomHelpers.broadcast(room, RoomHelpers.roomSnapshot(room));
+        require('./wsServer').broadcastRoomsUpdate();
+      })
+      .catch(err => {
+        log.warn('AI', `${code} — room topic generation failed: ${err.message}`);
+      });
   },
 
   _updateSettings(ws, pid, msg, room, code) {
@@ -391,6 +429,7 @@ const MessageHandler = {
   _requireHost(ws, pid, room, code) {
     if (pid === room.hostPid) return true;
     log.warn('Room', `${code} — non-host ${pid} tried a host-only action`);
+    this._error(ws, 'Only the host can do that.');
     return false;
   },
 

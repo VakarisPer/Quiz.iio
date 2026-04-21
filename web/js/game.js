@@ -34,10 +34,8 @@ class GameController {
   /**
    * Transition to the question screen and start the timer.
    * @param {object} m  Server `question` message payload.
-   */
+   */   
   showQuestion(m) {
-    console.log('[DEBUG] question mode received:', m.mode);
-    console.log('[DEBUG] full message:', JSON.stringify(m));
     this.curAnswer  = null;
     this.lastResult = null;
     this.curQNum    = m.index + 1;

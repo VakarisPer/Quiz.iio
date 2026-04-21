@@ -55,6 +55,14 @@ const App = (() => {
 
     keyboard.init();
     conn.connect();
+
+    if (state.myName) {
+      const createName = document.getElementById('c-name');
+      const joinName   = document.getElementById('j-name');
+      if (createName && !createName.value) createName.value = state.myName;
+      if (joinName && !joinName.value) joinName.value = state.myName;
+    }
+
     _updateActivePlayers();
     setInterval(_updateActivePlayers, 30000);
 

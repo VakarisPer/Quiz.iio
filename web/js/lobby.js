@@ -64,10 +64,7 @@ class LobbyController {
   leaveRoom() {
     App.conn.send({ type: 'leave_room' });
     this._roomCode   = null;
-    App.state.isHost = false;
-    App.state.myPid  = null;
-    App.state.myName = '';
-    App.state.roomCode = null;
+    App.state.clearAll();
     App.screens.show('screen-home');
   }
 

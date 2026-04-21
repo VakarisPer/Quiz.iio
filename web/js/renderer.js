@@ -59,15 +59,14 @@ class GameRenderer {
    * @param {object[]} players  Array of player objects.
    * @param {'lobby'|'game'} state  Current room state.
    * @param {string}   myPid   Current player's ID.
+   * @param {string}   hostPid Current host player's ID.
    */
-  renderPlayers(players, state, myPid) {
+  renderPlayers(players, state, myPid, hostPid) {
     if (!players?.length) {
       Utils.q('#players-list').innerHTML =
         '<div style="font-size:13px;color:var(--muted);text-align:center;padding:20px 0;">Waiting for players...</div>';
       return;
     }
-
-    const hostPid = players[0]?.pid;
 
     Utils.q('#players-list').innerHTML = players.map(p => {
       const isYou = p.pid === myPid;

@@ -13,42 +13,58 @@ class MessageHandler {
    */
   handle(m) {
     switch (m.type) {
-
-      // ── Identity ──────────────────────────────────────────
       case 'connected':
         App.state.myPid = m.pid;
-        // Auto-rejoin if we had a room before disconnect
-        if (App.state.roomCode && App.state.myName) {
-          App.conn.send({ type: 'rejoin_room', name: App.state.myName, code: App.state.roomCode });
+        if (App.state.hasReconnectSession()) {
+          App.state.rejoinPending = true;
+          App.toast.show('Trying to reconnect to room ' + App.state.roomCode + '...', 'info');
+          App.conn.send({
+            type: 'rejoin_room',
+            code: App.state.roomCode,
+            rejoinKey: App.state.rejoinKey,
+          });
         }
         break;
 
-      // ── Room lifecycle ────────────────────────────────────
       case 'created':
-        App.state.roomCode = m.code;
+        App.state.rememberRoom({
+          name: m.name,
+          roomCode: m.code,
+          rejoinKey: m.rejoinKey,
+          isHost: true,
+        });
         App.lobby.setCode(m.code);
         App.lobby.showAsHost();
         App.screens.show('screen-lobby');
         break;
 
       case 'joined':
-        App.state.roomCode = m.code;
+        App.state.rememberRoom({
+          name: m.name,
+          roomCode: m.code,
+          rejoinKey: m.rejoinKey,
+          isHost: false,
+        });
         App.lobby.setCode(m.code);
         App.lobby.showAsPlayer();
         App.screens.show('screen-lobby');
         break;
 
       case 'rejoined':
-        App.state.roomCode = m.code;
-        App.state.isHost = m.isHost;
+        App.state.rememberRoom({
+          name: m.name,
+          roomCode: m.code,
+          rejoinKey: m.rejoinKey,
+          isHost: m.isHost,
+        });
         App.lobby.setCode(m.code);
         App.toast.show('Reconnected to the game!', 'ok');
-        // The room_state that follows will place us on the correct screen
         break;
 
       case 'room_state':
-        App.renderer.renderPlayers(m.players, m.state, App.state.myPid);
-        // If we're rejoining mid-game, show the game screen
+        App.renderer.renderPlayers(m.players, m.state, App.state.myPid, m.hostPid);
+        App.state.isHost = m.hostPid === App.state.myPid;
+
         if (m.state === 'playing') {
           if (m.players?.length) {
             App.renderer.renderLeaderboard(m.players, 'game-lb', App.state.myPid);
@@ -56,32 +72,38 @@ class MessageHandler {
           }
           App.screens.show('screen-game');
         } else if (m.state === 'lobby') {
+          if (App.state.isHost) App.lobby.showAsHost();
+          else App.lobby.showAsPlayer();
           App.screens.show('screen-lobby');
-        }
-        // Detect host status from snapshot
-        if (m.hostPid && m.hostPid === App.state.myPid) {
-          App.state.isHost = true;
+        } else if (m.state === 'results') {
+          App.game.refreshResultActions();
         }
         break;
 
       case 'player_left':
-        App.toast.show(m.name + ' left the room');
+        if (m.disconnected) {
+          App.toast.show(m.name + ' disconnected. Their slot is reserved for 5 minutes.', 'info');
+        } else {
+          App.toast.show(m.name + ' left the room');
+        }
         break;
 
-      // ── Lobby notices ─────────────────────────────────────
+      case 'host_changed':
+        App.state.isHost = m.pid === App.state.myPid;
+        if (App.state.isHost) App.toast.show('You are now the host for this room.', 'ok');
+        else App.toast.show(m.name + ' is now the host.', 'info');
+        App.game.refreshResultActions();
+        break;
+
       case 'context_set':
-        Utils.setNotice(
-          'lobby-notice',
-          'AI source is ready — questions will be generated from your content.',
-          'ok'
-        );
+        Utils.setNotice('ctx-saved-notice', m.msg || 'AI source saved.', m.truncated || m.aiTrimmed ? 'info' : 'ok');
+        Utils.setNotice('lobby-notice', m.msg || 'AI source saved.', m.truncated || m.aiTrimmed ? 'info' : 'ok');
         break;
 
       case 'status':
         Utils.setNotice('lobby-notice', m.msg, 'info');
         break;
 
-      // ── Game flow ─────────────────────────────────────────
       case 'game_starting':
         Sound.play();
         App.countdown.show(m.countdown || 3);
@@ -94,11 +116,9 @@ class MessageHandler {
         break;
 
       case 'timer':
-        // Timer is client-driven; server sync message is intentionally ignored.
         break;
 
       case 'answer_result':
-        // Store result — it will be read when the reveal arrives.
         App.game.lastResult = m;
         break;
 
@@ -130,13 +150,15 @@ class MessageHandler {
         Utils.q('#game-lb-card').style.display = 'none';
         break;
 
-      // ── Errors ────────────────────────────────────────────
       case 'game_error':
         App.countdown.hide();
         App.toast.show(m.msg, 'err');
         break;
 
       case 'error':
+        if (App.state.rejoinPending) {
+          App.state.clearRoom();
+        }
         App.toast.show(m.msg, 'err');
         break;
 

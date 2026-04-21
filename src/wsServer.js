@@ -11,6 +11,7 @@ const sanitize = s => String(s).replace(/[<>"'&]/g, '').trim().slice(0, 20);
 
 // Module-level wss reference so broadcastRoomsUpdate can be called from anywhere
 let _wss = null;
+const SERVER_HEARTBEAT_MS = 30000;
 
 function broadcastRoomsUpdate() {
   if (!_wss) return;
@@ -36,6 +37,7 @@ class WsServer {
     });
     _wss = this._wss;
     this._wss.on('connection', (ws, req) => this._onConnection(ws, req));
+    this._heartbeatInterval = setInterval(() => this._sweepDeadSockets(), SERVER_HEARTBEAT_MS);
   }
 
   // ── Private ────────────────────────────────────────────────────────────────
@@ -48,6 +50,7 @@ class WsServer {
     // Per-socket rate limiting state
     ws._msgCount  = 0;
     ws._msgWindow = Date.now();
+    ws.isAlive    = true;
 
     // Send the current live room list to the new client
     try {
@@ -63,6 +66,7 @@ class WsServer {
     ws.on('message', raw => this._onMessage(ws, pid, raw));
     ws.on('close',  (code) => this._onClose(pid, code));
     ws.on('error',  err   => log.error('WS', `Socket error for ${pid}:`, err.message));
+    ws.on('pong',   ()    => { ws.isAlive = true; });
   }
 
   _onMessage(ws, pid, raw) {
@@ -89,11 +93,17 @@ class WsServer {
       return;
     }
 
+    if (msg.type === 'ping') {
+      ws.isAlive = true;
+      try { ws.send(JSON.stringify({ type: 'pong', sentAt: msg.sentAt || null })); } catch { /**/ }
+      return;
+    }
+
     // ── Input validation ─────────────────────────────────────────────────────
     if (msg.name !== undefined) {
       if (typeof msg.name !== 'string' || msg.name.length > 100) {
         log.warn('WS', `${pid} sent invalid name`);
-        try { ws.send(JSON.stringify({ type: 'error', message: 'Invalid input' })); } catch { /**/ }
+        try { ws.send(JSON.stringify({ type: 'error', msg: 'Invalid input' })); } catch { /**/ }
         return;
       }
       // Strip HTML from name before forwarding
@@ -104,10 +114,18 @@ class WsServer {
       const code = String(msg.code || '').toUpperCase().trim();
       if (!/^[A-Z0-9]{5}$/.test(code)) {
         log.warn('WS', `${pid} sent invalid room code: ${msg.code}`);
-        try { ws.send(JSON.stringify({ type: 'error', message: 'Invalid input' })); } catch { /**/ }
+        try { ws.send(JSON.stringify({ type: 'error', msg: 'Invalid input' })); } catch { /**/ }
         return;
       }
       msg.code = code; // normalise to uppercase
+    }
+
+    if (msg.rejoinKey !== undefined) {
+      if (typeof msg.rejoinKey !== 'string' || msg.rejoinKey.length > 128) {
+        log.warn('WS', `${pid} sent invalid rejoin key`);
+        try { ws.send(JSON.stringify({ type: 'error', msg: 'Invalid input' })); } catch { /**/ }
+        return;
+      }
     }
 
     MessageHandler.handle(ws, pid, msg);
@@ -117,6 +135,17 @@ class WsServer {
     log.info('WS', `Disconnected: ${pid} (code ${code})`);
     RoomHelpers.removePlayer(pid);
     broadcastRoomsUpdate();
+  }
+
+  _sweepDeadSockets() {
+    this._wss.clients.forEach(ws => {
+      if (ws.isAlive === false) {
+        try { ws.terminate(); } catch { /**/ }
+        return;
+      }
+      ws.isAlive = false;
+      try { ws.ping(); } catch { /**/ }
+    });
   }
 }
 

@@ -28,6 +28,18 @@ const Utils = {
       out += chars[Math.floor(Math.random() * chars.length)];
     return out;
   },
+
+  /**
+   * Generate a reconnect token for reclaiming a disconnected player slot.
+   * @returns {string}
+   */
+  makeRejoinKey() {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let out = 'rj_';
+    for (let i = 0; i < 24; i++)
+      out += chars[Math.floor(Math.random() * chars.length)];
+    return out;
+  },
 };
 
 module.exports = Utils;

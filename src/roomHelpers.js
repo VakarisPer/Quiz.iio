@@ -12,7 +12,7 @@ function getRoomsSummary(rooms) {
     if (r.state === 'results' || r.state === 'ended' || r.isPrivate) continue;
     result.push({
       code:    r.code,
-      topic:   r.currentTopic || r.topic || 'General',
+      topic:   r.topic || 'General',
       q:       r.currentQ || 0,
       total:   r.config?.questionsPerGame || 10,
       players: r.players.size,
@@ -152,6 +152,7 @@ const RoomHelpers = {
       room._rejoinTimers[pid] = setTimeout(() => {
         if (room.players.has(pid) && room.players.get(pid).disconnected) {
           room.players.delete(pid);
+          this._migrateHost(room, pid, code);
           log.info('Room', `${code} — ${name} (${pid}) rejoin window expired, removed`);
           this.broadcast(room, { type: 'player_left', pid, name });
           this.broadcast(room, this.roomSnapshot(room));
@@ -164,6 +165,7 @@ const RoomHelpers = {
     // Lobby or results — remove immediately
     room.players.delete(pid);
     RoomStore.pidToRoom.delete(pid);
+    this._migrateHost(room, pid, code);
 
     log.info('Room', `${code} — player left: ${name} (${pid}), ${room.players.size} remaining`);
     this.broadcast(room, { type: 'player_left', pid, name });
@@ -192,17 +194,17 @@ const RoomHelpers = {
    *
    * @param {import('ws')} ws
    * @param {string} newPid
-   * @param {string} name
+   * @param {string} rejoinKey
    * @param {string} code
    * @returns {object|null}
    */
-  rejoinPlayer(ws, newPid, name, code) {
+  rejoinPlayer(ws, newPid, rejoinKey, code) {
     const room = RoomStore.rooms.get(code);
     if (!room) return null;
 
-    // Find a disconnected player with matching name
+    // Find a disconnected player with a matching reconnect token.
     for (const [oldPid, player] of room.players.entries()) {
-      if (player.disconnected && player.name === name) {
+      if (player.disconnected && player.rejoinKey === rejoinKey) {
         // Clear the rejoin timeout
         if (room._rejoinTimers?.[oldPid]) {
           clearTimeout(room._rejoinTimers[oldPid]);
@@ -223,11 +225,22 @@ const RoomHelpers = {
           room.hostPid = newPid;
         }
 
-        log.info('Room', `${code} — ${name} rejoined (old pid: ${oldPid}, new pid: ${newPid})`);
+        log.info('Room', `${code} — ${player.name} rejoined (old pid: ${oldPid}, new pid: ${newPid})`);
         return player;
       }
     }
     return null;
+  },
+
+  _migrateHost(room, oldPid, code) {
+    if (room.hostPid !== oldPid) return;
+
+    const nextHost = Array.from(room.players.values()).find(player => !player.disconnected);
+    if (!nextHost) return;
+
+    room.hostPid = nextHost.pid;
+    log.info('Room', `${code} — host migrated to ${nextHost.name} (${nextHost.pid})`);
+    this.broadcast(room, { type: 'host_changed', pid: nextHost.pid, name: nextHost.name });
   },
 };
 

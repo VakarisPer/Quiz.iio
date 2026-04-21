@@ -242,6 +242,10 @@ const GameLoop = {
    */
   _endGame(room) {
     room.state    = 'results';
+    const host    = room.players.get(room.hostPid);
+    if (!host || host.disconnected) {
+      RoomHelpers._migrateHost(room, room.hostPid, room.code);
+    }
     const board   = RoomHelpers.leaderboard(room);
     const winner  = board[0] || null;
 

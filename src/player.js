@@ -1,5 +1,7 @@
 'use strict';
 
+const Utils = require('./utils');
+
 /**
  * PlayerFactory — creates fresh player state objects.
  *
@@ -13,13 +15,15 @@ const PlayerFactory = {
    * @param {import('ws')} ws   Live WebSocket for this player.
    * @param {string}       pid  Unique player ID (from Utils.makePid).
    * @param {string}       name Display name chosen by the player.
+   * @param {string}       rejoinKey Stable reconnect token for this player slot.
    * @returns {object}
    */
-  create(ws, pid, name) {
+  create(ws, pid, name, rejoinKey = Utils.makeRejoinKey()) {
     return {
       ws,
       pid,
       name,
+      rejoinKey,
       score:       0,
       streak:      0,
       answered:    false,
