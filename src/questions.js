@@ -146,7 +146,7 @@ const QuestionService = {
         method: 'POST',
         headers: this._headers(),
         body: JSON.stringify({
-          model: 'deepseek-chat',
+          model: 'deepseek-v4-flash',
           messages: [
             { role: 'system', content: SYSTEM_PROMPT },
             { role: 'user', content: userPrompt },
@@ -299,7 +299,7 @@ const QuestionService = {
         method: 'POST',
         headers: this._headers(),
         body: JSON.stringify({
-          model: 'deepseek-chat',
+          model: 'deepseek-v4-flash',
           messages: [
             {
               role: 'system',
